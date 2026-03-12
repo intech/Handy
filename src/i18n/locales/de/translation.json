@@ -79,6 +79,10 @@
       "gigaam-v3-e2e-ctc": {
         "name": "GigaAM v3",
         "description": "Russische Spracherkennung. Schnell und präzise."
+      },
+      "canary-1b-v2": {
+        "name": "Canary 1B v2",
+        "description": "Mehrsprachig mit Übersetzung. Unterstützt über 25 Sprachen."
       }
     },
     "errors": {

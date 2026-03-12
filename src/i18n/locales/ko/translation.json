@@ -79,6 +79,10 @@
       "gigaam-v3-e2e-ctc": {
         "name": "GigaAM v3",
         "description": "러시아어 음성 인식. 빠르고 정확함."
+      },
+      "canary-1b-v2": {
+        "name": "Canary 1B v2",
+        "description": "번역 기능이 있는 다국어 지원. 25개 이상의 언어 지원."
       }
     },
     "errors": {

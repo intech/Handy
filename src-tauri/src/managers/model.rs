@@ -24,6 +24,7 @@ pub enum EngineType {
     MoonshineStreaming,
     SenseVoice,
     GigaAM,
+    Canary,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
@@ -418,6 +419,38 @@ impl ModelManager {
                 supports_translation: false,
                 is_recommended: false,
                 supported_languages: gigaam_languages,
+                is_custom: false,
+            },
+        );
+
+        // Canary 1B v2 supported languages
+        let canary_languages: Vec<String> = vec![
+            "en", "de", "es", "fr", "hi", "ja", "ko", "pt", "zh", "ar", "cs", "da", "fi", "hu",
+            "it", "lt", "lv", "nl", "no", "pl", "ro", "ru", "sk", "sv", "tr", "uk", "vi",
+        ]
+        .into_iter()
+        .map(String::from)
+        .collect();
+
+        available_models.insert(
+            "canary-1b-v2".to_string(),
+            ModelInfo {
+                id: "canary-1b-v2".to_string(),
+                name: "Canary 1B v2".to_string(),
+                description: "Multilingual with translation. Supports 25+ languages.".to_string(),
+                filename: "canary-1b-v2-onnx".to_string(),
+                url: None, // Manual download for now
+                size_mb: 982, // int8 encoder + decoder
+                is_downloaded: false,
+                is_downloading: false,
+                partial_size: 0,
+                is_directory: true,
+                engine_type: EngineType::Canary,
+                accuracy_score: 0.85,
+                speed_score: 0.50,
+                supports_translation: true,
+                is_recommended: false,
+                supported_languages: canary_languages,
                 is_custom: false,
             },
         );

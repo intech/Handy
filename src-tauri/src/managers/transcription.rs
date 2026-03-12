@@ -10,6 +10,7 @@ use std::sync::{Arc, Condvar, Mutex, MutexGuard};
 use std::thread;
 use std::time::{Duration, SystemTime};
 use tauri::{AppHandle, Emitter};
+use canary_engine::{CanaryConfig, CanaryEngine};
 use transcribe_rs::{
     engines::{
         gigaam::GigaAMEngine,
@@ -44,6 +45,7 @@ enum LoadedEngine {
     MoonshineStreaming(MoonshineStreamingEngine),
     SenseVoice(SenseVoiceEngine),
     GigaAM(GigaAMEngine),
+    Canary(CanaryEngine),
 }
 
 #[derive(Clone)]
@@ -168,6 +170,7 @@ impl TranscriptionManager {
                     LoadedEngine::MoonshineStreaming(ref mut e) => e.unload_model(),
                     LoadedEngine::SenseVoice(ref mut e) => e.unload_model(),
                     LoadedEngine::GigaAM(ref mut e) => e.unload_model(),
+                    LoadedEngine::Canary(ref mut e) => e.unload_model(),
                 }
             }
             *engine = None; // Drop the engine to free memory
@@ -366,6 +369,23 @@ impl TranscriptionManager {
                 })?;
                 LoadedEngine::GigaAM(engine)
             }
+            EngineType::Canary => {
+                let mut engine = CanaryEngine::new();
+                engine.load_model(&model_path).map_err(|e| {
+                    let error_msg = format!("Failed to load canary model {}: {}", model_id, e);
+                    let _ = self.app_handle.emit(
+                        "model-state-changed",
+                        ModelStateEvent {
+                            event_type: "loading_failed".to_string(),
+                            model_id: Some(model_id.to_string()),
+                            model_name: Some(model_info.name.clone()),
+                            error: Some(error_msg.clone()),
+                        },
+                    );
+                    anyhow::anyhow!(error_msg)
+                })?;
+                LoadedEngine::Canary(engine)
+            }
         };
 
         // Update the current engine and model ID
@@ -549,6 +569,33 @@ impl TranscriptionManager {
                         LoadedEngine::GigaAM(gigaam_engine) => gigaam_engine
                             .transcribe_samples(audio, None)
                             .map_err(|e| anyhow::anyhow!("GigaAM transcription failed: {}", e)),
+                        LoadedEngine::Canary(canary_engine) => {
+                            // Canary requires explicit language — no auto-detect support.
+                            // Default to "en" when language is "auto".
+                            let lang = if settings.selected_language == "auto" {
+                                "en"
+                            } else {
+                                settings.selected_language.as_str()
+                            };
+                            let tgt_lang = if settings.translate_to_english {
+                                "en"
+                            } else {
+                                lang
+                            };
+                            let config = CanaryConfig {
+                                use_pnc: true,
+                                ..Default::default()
+                            };
+                            canary_engine
+                                .transcribe(audio, Some(lang), Some(tgt_lang), &config)
+                                .map(|r| transcribe_rs::TranscriptionResult {
+                                    text: r.text,
+                                    segments: None,
+                                })
+                                .map_err(|e| {
+                                    anyhow::anyhow!("Canary transcription failed: {}", e)
+                                })
+                        }
                     }
                 },
             ));
